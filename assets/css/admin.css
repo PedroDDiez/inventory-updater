@@ -1,0 +1,169 @@
+/**
+ * Estilos para la página de administración del plugin Inventory Updater
+ */
+
+.inventory-updater-wrap {
+    max-width: 1200px;
+    margin: 20px 0;
+}
+
+.inventory-updater-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+.inventory-updater-section h2 {
+    margin-top: 0;
+    padding-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.inventory-updater-file-status {
+    margin: 15px 0;
+}
+
+.inventory-updater-file-status .notice {
+    margin: 0;
+}
+
+.inventory-updater-progress {
+    margin: 20px 0;
+}
+
+.inventory-updater-progress-bar {
+    height: 20px;
+    background-color: #f1f1f1;
+    border-radius: 3px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.inventory-updater-progress-bar-fill {
+    height: 100%;
+    background-color: #0073aa;
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.inventory-updater-progress-text {
+    margin: 5px 0;
+    font-style: italic;
+}
+
+.inventory-updater-results {
+    margin-top: 20px;
+}
+
+.inventory-updater-results-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.inventory-updater-results-card {
+    flex: 1;
+    min-width: 200px;
+    padding: 15px;
+    border-radius: 3px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-updater-results-card.updated {
+    background-color: #e7f5e9;
+}
+
+.inventory-updater-results-card.not-found {
+    background-color: #f8f5e9;
+}
+
+.inventory-updater-results-card.errors {
+    background-color: #f9e7e7;
+}
+
+.inventory-updater-results-card.no-sku {
+    background-color: #e9eff8;
+}
+
+.inventory-updater-table.updated-table tr:nth-child(even) {
+    background-color: #f5fff5;
+}
+
+.inventory-updater-table.updated-table tr:hover {
+    background-color: #e8ffe8;
+}
+
+.inventory-updater-results-card h3 {
+    margin-top: 0;
+}
+
+.inventory-updater-results-card .number {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.inventory-updater-results-tables {
+    margin-top: 20px;
+}
+
+.inventory-updater-results-tables h3 {
+    margin-top: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.inventory-updater-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.inventory-updater-table th,
+.inventory-updater-table td {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.inventory-updater-table th {
+    background-color: #f5f5f5;
+}
+
+.inventory-updater-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.inventory-updater-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.inventory-updater-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.inventory-updater-pagination button {
+    margin: 0 5px;
+}
+
+.inventory-updater-error-message {
+    color: #dc3232;
+    padding: 10px;
+    background-color: #f9e7e7;
+    border-left: 4px solid #dc3232;
+    margin: 10px 0;
+}
+
+code {
+    background: #f1f1f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+}
