@@ -22,14 +22,82 @@
     padding-bottom: 10px;
 }
 
+.inventory-updater-section h3 {
+    margin-top: 15px;
+    padding-bottom: 5px;
+}
+
+/* Estilos para la sección de configuración */
+.inventory-updater-settings {
+    margin: 15px 0;
+}
+
+.inventory-updater-setting {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.inventory-updater-setting:last-child {
+    border-bottom: none;
+}
+
+.inventory-updater-setting label {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.inventory-updater-setting input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.inventory-updater-setting .description {
+    margin: 5px 0 0 24px;
+    color: #666;
+}
+
+.inventory-updater-setting-actions {
+    margin-top: 20px;
+}
+
+.inventory-updater-config-summary {
+    background-color: #f8f8f8;
+    padding: 10px 15px;
+    border-left: 4px solid #2271b1;
+    margin-bottom: 20px;
+}
+
+/* Estilos para status del archivo */
 .inventory-updater-file-status {
     margin: 15px 0;
 }
 
 .inventory-updater-file-status .notice {
-    margin: 0;
+    margin: 0 0 10px 0;
 }
 
+/* Estilos para la descarga remota */
+.inventory-updater-remote-download {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+
+.inventory-updater-url-input {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.inventory-updater-url-input input[type="url"] {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+/* Estilos para la barra de progreso */
 .inventory-updater-progress {
     margin: 20px 0;
 }
@@ -54,6 +122,7 @@
     font-style: italic;
 }
 
+/* Estilos para resultados */
 .inventory-updater-results {
     margin-top: 20px;
 }
@@ -159,6 +228,11 @@
     background-color: #f9e7e7;
     border-left: 4px solid #dc3232;
     margin: 10px 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin-bottom: 15px;
 }
 
 code {

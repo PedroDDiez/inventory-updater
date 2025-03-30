@@ -7,15 +7,149 @@ jQuery(document).ready(function($) {
     
     // Elementos DOM
     const $processButton = $('#inventory-updater-process');
+    const $downloadButton = $('#inventory-updater-download');
+    const $saveSettingsButton = $('#save-settings');
+    const $updateStockCheckbox = $('#update-stock');
+    const $updatePriceCheckbox = $('#update-price');
+    const $settingsSavedMessage = $('#settings-saved-message');
+    const $urlInput = $('#inventory-updater-url');
     const $progressSection = $('#inventory-updater-progress');
+    const $downloadProgressSection = $('#inventory-updater-download-progress');
     const $progressBar = $('.inventory-updater-progress-bar-fill');
+    const $downloadProgressBar = $('#inventory-updater-download-progress .inventory-updater-progress-bar-fill');
     const $progressText = $('.inventory-updater-progress-text');
+    const $downloadProgressText = $('#inventory-updater-download-progress .inventory-updater-progress-text');
     const $resultsSection = $('#inventory-updater-results');
     const $resultsContent = $('.inventory-updater-results-content');
+    const $fileStatus = $('.inventory-updater-file-status');
     
     // Verificar que los elementos existen
     console.log('Process button exists:', $processButton.length > 0);
-    console.log('Progress section exists:', $progressSection.length > 0);
+    console.log('Download button exists:', $downloadButton.length > 0);
+    console.log('Save settings button exists:', $saveSettingsButton.length > 0);
+    
+    // Manejador para el botón de guardar configuración
+    $saveSettingsButton.on('click', function(e) {
+        e.preventDefault();
+        console.log('Save settings button clicked');
+        
+        // Deshabilitar botón
+        $saveSettingsButton.attr('disabled', true).text(inventory_updater_params.saving_text);
+        
+        // Ocultar mensaje de guardado
+        $settingsSavedMessage.hide();
+        
+        // Obtener valores
+        const updateStock = $updateStockCheckbox.is(':checked');
+        const updatePrice = $updatePriceCheckbox.is(':checked');
+        
+        // Realizar solicitud AJAX para guardar configuración
+        $.ajax({
+            url: inventory_updater_params.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'inventory_updater_save_settings',
+                nonce: inventory_updater_params.nonce,
+                update_stock: updateStock,
+                update_price: updatePrice
+            },
+            success: function(response) {
+                console.log('AJAX save settings success:', response);
+                
+                if (response.success) {
+                    // Mostrar mensaje de éxito
+                    $settingsSavedMessage.fadeIn().delay(2000).fadeOut();
+                } else {
+                    // Mostrar mensaje de error
+                    alert(response.data.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', status, error);
+                console.error('Response:', xhr.responseText);
+                
+                // Mostrar mensaje de error
+                alert('Error en la solicitud AJAX: ' + error);
+            },
+            complete: function() {
+                // Habilitar botón
+                $saveSettingsButton.attr('disabled', false).text('Guardar configuración');
+                console.log('AJAX save settings request completed');
+            }
+        });
+    });
+    
+    // Manejador para el botón de descargar
+    $downloadButton.on('click', function(e) {
+        e.preventDefault();
+        console.log('Download button clicked');
+        
+        const url = $urlInput.val().trim();
+        
+        if (!url) {
+            alert('Por favor, introduce una URL válida.');
+            return;
+        }
+        
+        // Deshabilitar botón
+        $downloadButton.attr('disabled', true).text(inventory_updater_params.downloading_text);
+        
+        // Mostrar barra de progreso
+        $downloadProgressSection.show();
+        $downloadProgressBar.css('width', '0%');
+        $downloadProgressText.text(inventory_updater_params.downloading_text);
+        
+        // Realizar solicitud AJAX para descargar
+        $.ajax({
+            url: inventory_updater_params.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'inventory_updater_download',
+                nonce: inventory_updater_params.nonce,
+                url: url
+            },
+            success: function(response) {
+                console.log('AJAX download success:', response);
+                
+                // Actualizar progreso a 100%
+                $downloadProgressBar.css('width', '100%');
+                
+                if (response.success) {
+                    // Mostrar mensaje de éxito
+                    $downloadProgressText.text(inventory_updater_params.download_success_text);
+                    
+                    // Actualizar estado del archivo
+                    $fileStatus.html(
+                        '<div class="notice notice-success inline"><p>' +
+                        'Archivo de inventario encontrado. Última modificación: ' + response.data.file_date +
+                        '</p></div>'
+                    );
+                } else {
+                    // Mostrar mensaje de error
+                    $downloadProgressText.text(inventory_updater_params.download_error_text);
+                    alert(response.data.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', status, error);
+                console.error('Response:', xhr.responseText);
+                
+                // Mostrar mensaje de error
+                $downloadProgressText.text(inventory_updater_params.download_error_text);
+                alert('Error en la solicitud AJAX: ' + error);
+            },
+            complete: function() {
+                // Habilitar botón
+                $downloadButton.attr('disabled', false).text('Descargar archivo');
+                console.log('AJAX download request completed');
+                
+                // Mantener la barra de progreso visible con el resultado
+                setTimeout(function() {
+                    $downloadProgressSection.fadeOut(500);
+                }, 3000);
+            }
+        });
+    });
     
     // Manejador para el botón de procesamiento
     $processButton.on('click', function(e) {
@@ -102,6 +236,20 @@ jQuery(document).ready(function($) {
         // Crear contenido HTML para los resultados
         let html = '';
         
+        // Información de configuración
+        html += '<div class="inventory-updater-config-summary">';
+        html += '<p><strong>Configuración utilizada:</strong> ';
+        if (results.update_stock && results.update_price) {
+            html += 'Actualización de stock y precio.';
+        } else if (results.update_stock) {
+            html += 'Solo actualización de stock.';
+        } else if (results.update_price) {
+            html += 'Solo actualización de precio.';
+        } else {
+            html += 'No se seleccionó ninguna actualización.';
+        }
+        html += '</p></div>';
+        
         // Tarjetas de resumen
         html += '<div class="inventory-updater-results-summary">';
         
@@ -144,7 +292,13 @@ jQuery(document).ready(function($) {
             html += '<p>Los siguientes productos del archivo de inventario no se pudieron encontrar en tu tienda WooCommerce:</p>';
             html += '<div class="table-responsive">';
             html += '<table class="inventory-updater-table not-found-table">';
-            html += '<thead><tr><th>SKU</th><th>Código de Barras</th><th>Título</th></tr></thead>';
+            html += '<thead><tr><th>SKU</th><th>Código de Barras</th><th>Título</th>';
+            
+            if (results.update_price) {
+                html += '<th>Precio</th>';
+            }
+            
+            html += '</tr></thead>';
             html += '<tbody>';
             
             // Limitar a los primeros 100 para no sobrecargar el navegador
@@ -156,11 +310,17 @@ jQuery(document).ready(function($) {
                 html += '<td>' + (product.sku || '-') + '</td>';
                 html += '<td>' + (product.barcode || '-') + '</td>';
                 html += '<td>' + (product.title || '-') + '</td>';
+                
+                if (results.update_price) {
+                    html += '<td>' + (product.price || '-') + '</td>';
+                }
+                
                 html += '</tr>';
             }
             
             if (results.not_found_products.length > maxToShow) {
-                html += '<tr><td colspan="3">... y ' + (results.not_found_products.length - maxToShow) + ' más</td></tr>';
+                const colspan = results.update_price ? 4 : 3;
+                html += '<tr><td colspan="' + colspan + '">... y ' + (results.not_found_products.length - maxToShow) + ' más</td></tr>';
             }
             
             html += '</tbody></table>';
@@ -173,7 +333,17 @@ jQuery(document).ready(function($) {
             html += '<p>Los siguientes productos han sido actualizados:</p>';
             html += '<div class="table-responsive">';
             html += '<table class="inventory-updater-table updated-table">';
-            html += '<thead><tr><th>ID</th><th>SKU</th><th>Título</th><th>Stock Anterior</th><th>Stock Nuevo</th><th>Estado</th></tr></thead>';
+            html += '<thead><tr><th>ID</th><th>SKU</th><th>Título</th>';
+            
+            if (results.update_stock) {
+                html += '<th>Stock Anterior</th><th>Stock Nuevo</th><th>Estado</th>';
+            }
+            
+            if (results.update_price) {
+                html += '<th>Precio Anterior</th><th>Precio Nuevo</th>';
+            }
+            
+            html += '</tr></thead>';
             html += '<tbody>';
             
             // Limitar a los primeros 100 para no sobrecargar el navegador
@@ -185,14 +355,28 @@ jQuery(document).ready(function($) {
                 html += '<td>' + product.id + '</td>';
                 html += '<td>' + (product.sku || '-') + '</td>';
                 html += '<td>' + product.title + '</td>';
-                html += '<td>' + (product.old_stock || '0') + '</td>';
-                html += '<td>' + product.new_stock + '</td>';
-                html += '<td>' + (product.stock_status == 'instock' ? 'En stock' : 'Agotado') + '</td>';
+                
+                if (results.update_stock) {
+                    html += '<td>' + (product.old_stock || '0') + '</td>';
+                    html += '<td>' + product.new_stock + '</td>';
+                    html += '<td>' + (product.stock_status == 'instock' ? 'En stock' : 'Agotado') + '</td>';
+                }
+                
+                if (results.update_price) {
+                    html += '<td>' + (product.old_price || '-') + '</td>';
+                    html += '<td>' + product.new_price + '</td>';
+                }
+                
                 html += '</tr>';
             }
             
             if (results.updated_products.length > maxUpdatedToShow) {
-                html += '<tr><td colspan="6">... y ' + (results.updated_products.length - maxUpdatedToShow) + ' más</td></tr>';
+                // Calcular el número de columnas para el colspan
+                let colspan = 3; // ID, SKU, Título
+                if (results.update_stock) colspan += 3; // Columnas de stock
+                if (results.update_price) colspan += 2; // Columnas de precio
+                
+                html += '<tr><td colspan="' + colspan + '">... y ' + (results.updated_products.length - maxUpdatedToShow) + ' más</td></tr>';
             }
             
             html += '</tbody></table>';
