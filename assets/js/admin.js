@@ -11,6 +11,8 @@ jQuery(document).ready(function($) {
     const $saveSettingsButton = $('#save-settings');
     const $updateStockCheckbox = $('#update-stock');
     const $updatePriceCheckbox = $('#update-price');
+    const $maintainDiscountsCheckbox = $('#maintain-discounts');
+    const $maintainDiscountsContainer = $('#maintain-discounts-container');
     const $settingsSavedMessage = $('#settings-saved-message');
     const $urlInput = $('#inventory-updater-url');
     const $progressSection = $('#inventory-updater-progress');
@@ -28,6 +30,15 @@ jQuery(document).ready(function($) {
     console.log('Download button exists:', $downloadButton.length > 0);
     console.log('Save settings button exists:', $saveSettingsButton.length > 0);
     
+    // Mostrar/ocultar opción de mantener descuentos según el estado del checkbox de actualizar precio
+    $updatePriceCheckbox.on('change', function() {
+        if ($(this).is(':checked')) {
+            $maintainDiscountsContainer.show();
+        } else {
+            $maintainDiscountsContainer.hide();
+        }
+    });
+    
     // Manejador para el botón de guardar configuración
     $saveSettingsButton.on('click', function(e) {
         e.preventDefault();
@@ -42,6 +53,7 @@ jQuery(document).ready(function($) {
         // Obtener valores
         const updateStock = $updateStockCheckbox.is(':checked');
         const updatePrice = $updatePriceCheckbox.is(':checked');
+        const maintainDiscounts = $maintainDiscountsCheckbox.is(':checked');
         
         // Realizar solicitud AJAX para guardar configuración
         $.ajax({
@@ -51,7 +63,8 @@ jQuery(document).ready(function($) {
                 action: 'inventory_updater_save_settings',
                 nonce: inventory_updater_params.nonce,
                 update_stock: updateStock,
-                update_price: updatePrice
+                update_price: updatePrice,
+                maintain_discounts: maintainDiscounts
             },
             success: function(response) {
                 console.log('AJAX save settings success:', response);
@@ -239,15 +252,18 @@ jQuery(document).ready(function($) {
         // Información de configuración
         html += '<div class="inventory-updater-config-summary">';
         html += '<p><strong>Configuración utilizada:</strong> ';
-        if (results.update_stock && results.update_price) {
-            html += 'Actualización de stock y precio.';
-        } else if (results.update_stock) {
-            html += 'Solo actualización de stock.';
-        } else if (results.update_price) {
-            html += 'Solo actualización de precio.';
-        } else {
-            html += 'No se seleccionó ninguna actualización.';
+        
+        let configItems = [];
+        if (results.update_stock) configItems.push('Actualización de stock');
+        if (results.update_price) {
+            if (results.maintain_discounts) {
+                configItems.push('Actualización de precio manteniendo descuentos');
+            } else {
+                configItems.push('Actualización de precio');
+            }
         }
+        
+        html += configItems.join(', ') || 'No se seleccionó ninguna actualización.';
         html += '</p></div>';
         
         // Tarjetas de resumen
@@ -340,7 +356,11 @@ jQuery(document).ready(function($) {
             }
             
             if (results.update_price) {
-                html += '<th>Precio Anterior</th><th>Precio Nuevo</th>';
+                if (results.maintain_discounts) {
+                    html += '<th>Precio Regular Anterior</th><th>Precio Regular Nuevo</th><th>Precio Venta Anterior</th><th>Precio Venta Nuevo</th>';
+                } else {
+                    html += '<th>Precio Anterior</th><th>Precio Nuevo</th>';
+                }
             }
             
             html += '</tr></thead>';
@@ -363,8 +383,15 @@ jQuery(document).ready(function($) {
                 }
                 
                 if (results.update_price) {
-                    html += '<td>' + (product.old_price || '-') + '</td>';
-                    html += '<td>' + product.new_price + '</td>';
+                    if (results.maintain_discounts) {
+                        html += '<td>' + (product.old_price && product.old_price !== '0' ? product.old_price + ' €' : '-') + '</td>';
+                        html += '<td>' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
+                        html += '<td>' + (product.old_sale_price && product.old_sale_price !== '0' ? product.old_sale_price + ' €' : '-') + '</td>';
+                        html += '<td>' + (product.new_sale_price && product.new_sale_price !== '0' ? product.new_sale_price + ' €' : '-') + '</td>';
+                    } else {
+                        html += '<td>' + (product.old_price && product.old_price !== '0' ? product.old_price + ' €' : '-') + '</td>';
+                        html += '<td>' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
+                    }
                 }
                 
                 html += '</tr>';
@@ -374,7 +401,13 @@ jQuery(document).ready(function($) {
                 // Calcular el número de columnas para el colspan
                 let colspan = 3; // ID, SKU, Título
                 if (results.update_stock) colspan += 3; // Columnas de stock
-                if (results.update_price) colspan += 2; // Columnas de precio
+                if (results.update_price) {
+                    if (results.maintain_discounts) {
+                        colspan += 4; // Columnas adicionales para precios con descuento
+                    } else {
+                        colspan += 2; // Columnas de precio normal
+                    }
+                }
                 
                 html += '<tr><td colspan="' + colspan + '">... y ' + (results.updated_products.length - maxUpdatedToShow) + ' más</td></tr>';
             }
