@@ -63,11 +63,52 @@ class Inventory_Updater_Admin {
             INVENTORY_UPDATER_VERSION
         );
         
-        // Scripts
+        // Scripts - Cargamos los archivos en el orden correcto
+        wp_enqueue_script(
+            'inventory-updater-utilities',
+            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/utilities.js',
+            array('jquery'),
+            INVENTORY_UPDATER_VERSION,
+            true
+        );
+        
+        wp_enqueue_script(
+            'inventory-updater-results-renderer',
+            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/results-renderer.js',
+            array('jquery', 'inventory-updater-utilities'),
+            INVENTORY_UPDATER_VERSION,
+            true
+        );
+        
+        wp_enqueue_script(
+            'inventory-updater-ajax-service',
+            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/ajax-service.js',
+            array('jquery', 'inventory-updater-utilities'),
+            INVENTORY_UPDATER_VERSION,
+            true
+        );
+        
+        wp_enqueue_script(
+            'inventory-updater-ui-handlers',
+            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/ui-handlers.js',
+            array('jquery', 'inventory-updater-ajax-service'),
+            INVENTORY_UPDATER_VERSION,
+            true
+        );
+        
+        wp_enqueue_script(
+            'inventory-updater-core',
+            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/core.js',
+            array('jquery', 'inventory-updater-ui-handlers', 'inventory-updater-results-renderer'),
+            INVENTORY_UPDATER_VERSION,
+            true
+        );
+        
+        // Archivo principal que carga el namespace global (opcional)
         wp_enqueue_script(
             'inventory-updater-admin',
-            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/admin.js',
-            array('jquery'),
+            INVENTORY_UPDATER_PLUGIN_URL . 'assets/js/inventory-updater.js',
+            array('inventory-updater-core'),
             INVENTORY_UPDATER_VERSION,
             true
         );

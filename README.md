@@ -19,3 +19,6 @@ v1.4.0
 - Separa los productos actualizados en dos:
  - Productos encontrados y no modificados
  - Productos encontrados y actualizados
+
+v1.5.0
+- Reformatea y divide el archivo js inicial
