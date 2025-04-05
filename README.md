@@ -14,3 +14,8 @@ v1.2.0
 
 v1.3.0
 - Añade listado de productos no encontrados en el listado
+
+v1.4.0
+- Separa los productos actualizados en dos:
+ - Productos encontrados y no modificados
+ - Productos encontrados y actualizados

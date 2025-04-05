@@ -67,11 +67,13 @@ class Inventory_Updater_Processor {
         
         // Inicializar resultados
         $results = array(
-            'updated' => 0,
+            'updated' => 0,             // Productos realmente actualizados (con cambios)
+            'matched_no_changes' => 0,  // Productos encontrados pero sin cambios
             'not_found' => 0,
             'errors' => 0,
             'not_found_products' => array(),
-            'updated_products' => array(),
+            'updated_products' => array(),    // Productos realmente actualizados
+            'unchanged_products' => array(),  // Productos que matchean pero no cambiaron
             'missing_in_file' => array(),  // Productos en la BD no encontrados en el archivo
             'processed_lines' => 0,
             'total_lines' => 0
@@ -171,11 +173,17 @@ class Inventory_Updater_Processor {
                 $update_result = $this->plugin->product_updater->update_product($product_id, $stock, $price, $sku, $barcode);
                 
                 if ($update_result['updated']) {
-                    $results['updated_products'][] = $update_result['data'];
-                    $results['updated']++;
+                    // Verificar si realmente hubo cambios en los valores
+                    if ($update_result['has_changes']) {
+                        $results['updated_products'][] = $update_result['data'];
+                        $results['updated']++;
+                    } else {
+                        $results['unchanged_products'][] = $update_result['data'];
+                        $results['matched_no_changes']++;
+                    }
                     
                     // Debug para verificar los datos después de actualizar
-                    error_log("Producto actualizado. Datos: " . print_r($update_result['data'], true));
+                    error_log("Producto procesado. Datos: " . print_r($update_result['data'], true) . ", Cambios: " . ($update_result['has_changes'] ? 'Sí' : 'No'));
                 }
             } else {
                 // Si no encontramos el producto, añadir a la lista de no encontrados

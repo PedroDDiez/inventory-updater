@@ -51,15 +51,23 @@ class Inventory_Updater_Product_Updater {
         );
         
         $updated = false;
+        $has_changes = false; // Indicador de si hubo cambios reales
         
         // Actualizar stock si está habilitado
         if ($update_stock) {
-            $this->update_product_stock($product_id, $stock);
+            // Verificar si el stock ha cambiado
+            $stock_changed = (string)$old_stock !== (string)$stock;
+            
+            if ($stock_changed) {
+                $has_changes = true;
+                $this->update_product_stock($product_id, $stock);
+            }
             
             // Guardar datos de stock actualizados
             $updated_data['old_stock'] = $old_stock;
             $updated_data['new_stock'] = $stock;
             $updated_data['stock_status'] = $stock > 0 ? 'instock' : 'outofstock';
+            $updated_data['stock_changed'] = $stock_changed;
             
             $updated = true;
         }
@@ -70,19 +78,42 @@ class Inventory_Updater_Product_Updater {
             error_log("Actualizando precio de producto ID: $product_id. Precio: $price (como número: " . floatval($price) . ")");
             
             $price_formatted = number_format(floatval($price), 2, '.', '');
-            error_log("Precio formateado: $price_formatted");
             
-            $result = $this->update_product_price($product_id, floatval($price));
+            // Verificar si el precio ha cambiado
+            $price_changed = $old_regular_price != $price_formatted;
+            
+            if ($price_changed) {
+                $has_changes = true;
+                error_log("Precio cambiado: Antiguo = $old_regular_price, Nuevo = $price_formatted");
+                $result = $this->update_product_price($product_id, floatval($price));
+            } else {
+                error_log("Precio sin cambios: $old_regular_price = $price_formatted");
+                // Mantener datos originales en el resultado
+                $result = array(
+                    'regular_price' => $old_regular_price,
+                    'sale_price' => $old_sale_price
+                );
+            }
             
             // Guardar datos de precio actualizados - Usar nombres de campos consistentes
             $updated_data['old_price'] = $old_regular_price;
             $updated_data['new_price'] = $price_formatted;
+            $updated_data['price_changed'] = $price_changed;
             
             // Si estamos manteniendo descuentos, guardar también esos datos
             if ($maintain_discounts && !empty($old_sale_price)) {
                 $updated_data['old_sale_price'] = $old_sale_price;
                 if (isset($result['sale_price']) && !empty($result['sale_price'])) {
-                    $updated_data['new_sale_price'] = $result['sale_price'];
+                    $new_sale_price = $result['sale_price'];
+                    $updated_data['new_sale_price'] = $new_sale_price;
+                    
+                    // Verificar si el precio de oferta ha cambiado
+                    $sale_price_changed = $old_sale_price != $new_sale_price;
+                    if ($sale_price_changed) {
+                        $has_changes = true;
+                    }
+                    
+                    $updated_data['sale_price_changed'] = $sale_price_changed;
                 }
             }
             
@@ -96,9 +127,11 @@ class Inventory_Updater_Product_Updater {
         
         return array(
             'updated' => $updated,
+            'has_changes' => $has_changes,
             'data' => $updated_data
         );
     }
+
     
     /**
      * Actualizar el stock de un producto

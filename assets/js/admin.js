@@ -273,7 +273,14 @@ jQuery(document).ready(function($) {
         html += '<div class="inventory-updater-results-card updated">';
         html += '<h3>Productos actualizados</h3>';
         html += '<div class="number">' + results.updated + '</div>';
-        html += '<p>de ' + results.total_lines + ' líneas procesadas</p>';
+        html += '<p>con cambios efectivos de valor</p>';
+        html += '</div>';
+        
+        // Productos encontrados sin cambios
+        html += '<div class="inventory-updater-results-card unchanged">';
+        html += '<h3>Productos sin cambios</h3>';
+        html += '<div class="number">' + (results.matched_no_changes || 0) + '</div>';
+        html += '<p>encontrados pero sin modificaciones</p>';
         html += '</div>';
         
         // Productos no encontrados
@@ -309,10 +316,12 @@ jQuery(document).ready(function($) {
         // Sección de tablas
         html += '<div class="inventory-updater-results-tables">';
         
-        // Tabla de productos actualizados
+        // Tabla de productos actualizados (con cambios)
         if (results.updated_products && results.updated_products.length > 0) {
+            html += '<div class="inventory-updater-section-header">';
             html += '<h3>Productos actualizados</h3>';
-            html += '<p>Los siguientes productos han sido actualizados:</p>';
+            html += '<p>Los siguientes productos han sido actualizados con cambios efectivos en sus valores:</p>';
+            html += '</div>';
             html += '<div class="table-responsive">';
             html += '<table class="inventory-updater-table updated-table">';
             html += '<thead><tr><th>ID</th><th>SKU</th><th>Título</th>';
@@ -343,20 +352,26 @@ jQuery(document).ready(function($) {
                 html += '<td>' + product.title + '</td>';
                 
                 if (results.update_stock) {
+                    const stockChanged = product.stock_changed === true;
                     html += '<td>' + (product.old_stock || '0') + '</td>';
-                    html += '<td>' + product.new_stock + '</td>';
+                    html += '<td class="' + (stockChanged ? 'value-changed' : '') + '">' + product.new_stock + '</td>';
                     html += '<td>' + (product.stock_status == 'instock' ? 'En stock' : 'Agotado') + '</td>';
                 }
                 
                 if (results.update_price) {
                     if (results.maintain_discounts) {
+                        const priceChanged = product.price_changed === true;
+                        const salePriceChanged = product.sale_price_changed === true;
+                        
                         html += '<td>' + (product.old_price && product.old_price !== '0' ? product.old_price + ' €' : '-') + '</td>';
-                        html += '<td>' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
+                        html += '<td class="' + (priceChanged ? 'value-changed' : '') + '">' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
                         html += '<td>' + (product.old_sale_price && product.old_sale_price !== '0' ? product.old_sale_price + ' €' : '-') + '</td>';
-                        html += '<td>' + (product.new_sale_price && product.new_sale_price !== '0' ? product.new_sale_price + ' €' : '-') + '</td>';
+                        html += '<td class="' + (salePriceChanged ? 'value-changed' : '') + '">' + (product.new_sale_price && product.new_sale_price !== '0' ? product.new_sale_price + ' €' : '-') + '</td>';
                     } else {
+                        const priceChanged = product.price_changed === true;
+                        
                         html += '<td>' + (product.old_price && product.old_price !== '0' ? product.old_price + ' €' : '-') + '</td>';
-                        html += '<td>' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
+                        html += '<td class="' + (priceChanged ? 'value-changed' : '') + '">' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
                     }
                 }
                 
@@ -382,10 +397,83 @@ jQuery(document).ready(function($) {
             html += '</div>';
         }
         
+        // Tabla de productos sin cambios
+        if (results.unchanged_products && results.unchanged_products.length > 0) {
+            html += '<div class="inventory-updater-section-header">';
+            html += '<h3>Productos no actualizados</h3>';
+            html += '<p>Los siguientes productos fueron encontrados en el archivo pero no sufrieron cambios:</p>';
+            html += '</div>';
+            html += '<div class="table-responsive">';
+            html += '<table class="inventory-updater-table unchanged-table">';
+            html += '<thead><tr><th>ID</th><th>SKU</th><th>Título</th>';
+            
+            if (results.update_stock) {
+                html += '<th>Stock</th><th>Estado</th>';
+            }
+            
+            if (results.update_price) {
+                if (results.maintain_discounts) {
+                    html += '<th>Precio Regular</th><th>Precio Oferta</th>';
+                } else {
+                    html += '<th>Precio</th>';
+                }
+            }
+            
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            // Limitar a los primeros 50 para no sobrecargar el navegador
+            const maxUnchangedToShow = Math.min(results.unchanged_products.length, 50);
+            
+            for (let i = 0; i < maxUnchangedToShow; i++) {
+                const product = results.unchanged_products[i];
+                html += '<tr>';
+                html += '<td>' + product.id + '</td>';
+                html += '<td>' + (product.sku || '-') + '</td>';
+                html += '<td>' + product.title + '</td>';
+                
+                if (results.update_stock) {
+                    html += '<td>' + product.new_stock + '</td>';
+                    html += '<td>' + (product.stock_status == 'instock' ? 'En stock' : 'Agotado') + '</td>';
+                }
+                
+                if (results.update_price) {
+                    if (results.maintain_discounts) {
+                        html += '<td>' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
+                        html += '<td>' + (product.new_sale_price && product.new_sale_price !== '0' ? product.new_sale_price + ' €' : '-') + '</td>';
+                    } else {
+                        html += '<td>' + (product.new_price && product.new_price !== '0' ? product.new_price + ' €' : '-') + '</td>';
+                    }
+                }
+                
+                html += '</tr>';
+            }
+            
+            if (results.unchanged_products.length > maxUnchangedToShow) {
+                // Calcular el número de columnas para el colspan
+                let colspan = 3; // ID, SKU, Título
+                if (results.update_stock) colspan += 2; // Columnas de stock (sin columna "anterior")
+                if (results.update_price) {
+                    if (results.maintain_discounts) {
+                        colspan += 2; // Columnas de precio (sin columnas "anterior")
+                    } else {
+                        colspan += 1; // Columna de precio (sin columna "anterior")
+                    }
+                }
+                
+                html += '<tr><td colspan="' + colspan + '">... y ' + (results.unchanged_products.length - maxUnchangedToShow) + ' más</td></tr>';
+            }
+            
+            html += '</tbody></table>';
+            html += '</div>';
+        }
+        
         // Productos no listados en el archivo (nuevos)
         if (results.missing_in_file && results.missing_in_file.length > 0) {
+            html += '<div class="inventory-updater-section-header">';
             html += '<h3>Productos no encontrados en listado</h3>';
             html += '<p>Los siguientes productos en tu tienda WooCommerce no aparecen en el archivo de inventario:</p>';
+            html += '</div>';
             html += '<div class="table-responsive">';
             html += '<table class="inventory-updater-table missing-in-file-table">';
             html += '<thead><tr><th>ID</th><th>SKU</th><th>Código de Barras</th><th>Título</th></tr></thead>';
@@ -414,8 +502,10 @@ jQuery(document).ready(function($) {
         
         // Productos sin SKU
         if (results.products_without_sku.length > 0) {
+            html += '<div class="inventory-updater-section-header">';
             html += '<h3>Productos sin SKU en la tienda</h3>';
             html += '<p>Los siguientes productos en tu tienda WooCommerce no tienen SKU asignado:</p>';
+            html += '</div>';
             html += '<div class="table-responsive">';
             html += '<table class="inventory-updater-table without-sku-table">';
             html += '<thead><tr><th>ID</th><th>Título</th></tr></thead>';
@@ -442,8 +532,10 @@ jQuery(document).ready(function($) {
         
         // Tabla de productos no encontrados (limitado a 10 y al final)
         if (results.not_found_products.length > 0) {
+            html += '<div class="inventory-updater-section-header">';
             html += '<h3>Productos no encontrados en la tienda</h3>';
             html += '<p>Los siguientes productos del archivo de inventario no se pudieron encontrar en tu tienda WooCommerce:</p>';
+            html += '</div>';
             html += '<div class="table-responsive">';
             html += '<table class="inventory-updater-table not-found-table">';
             html += '<thead><tr><th>SKU</th><th>Código de Barras</th><th>Título</th>';

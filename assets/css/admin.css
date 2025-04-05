@@ -259,3 +259,57 @@ code {
 .inventory-updater-table.missing-in-file-table tr:hover {
     background-color: #e8f1ff;
 }
+
+/**
+ * Estilos adicionales para las nuevas tablas de resultados
+ */
+
+/* Estilo para la tarjeta de productos no listados */
+.inventory-updater-results-card.missing-in-file {
+    background-color: #f4f5f9;
+}
+
+/* Estilo para la tarjeta de productos sin cambios */
+.inventory-updater-results-card.unchanged {
+    background-color: #f5f9ef;
+}
+
+/* Estilo para la tabla de productos sin cambios */
+.inventory-updater-table.unchanged-table tr:nth-child(even) {
+    background-color: #f5f9ef;
+}
+
+.inventory-updater-table.unchanged-table tr:hover {
+    background-color: #e8f1e3;
+}
+
+/* Estilo para la tabla de productos no listados */
+.inventory-updater-table.missing-in-file-table tr:nth-child(even) {
+    background-color: #f5f9ff;
+}
+
+.inventory-updater-table.missing-in-file-table tr:hover {
+    background-color: #e8f1ff;
+}
+
+/* Resaltar cambios en tablas */
+.inventory-updater-table .value-changed {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+/* Añadir un borde izquierdo distintivo para productos actualizados */
+.inventory-updater-table.updated-table tr:hover {
+    border-left: 4px solid #0073aa;
+}
+
+/* Estilo específico para cada tipo de tabla */
+.inventory-updater-section-header {
+    margin-top: 25px;
+    border-bottom: 1px solid #e2e4e7;
+    padding-bottom: 8px;
+}
+
+.inventory-updater-section-header h3 {
+    margin-bottom: 0;
+}
