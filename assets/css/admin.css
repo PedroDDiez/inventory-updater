@@ -241,3 +241,21 @@ code {
     border-radius: 3px;
     font-size: 13px;
 }
+
+/**
+ * Estilos adicionales para las nuevas tablas de resultados
+ */
+
+/* Estilo para la tarjeta de productos no listados */
+.inventory-updater-results-card.missing-in-file {
+    background-color: #f4f5f9;
+}
+
+/* Estilo para la tabla de productos no listados */
+.inventory-updater-table.missing-in-file-table tr:nth-child(even) {
+    background-color: #f5f9ff;
+}
+
+.inventory-updater-table.missing-in-file-table tr:hover {
+    background-color: #e8f1ff;
+}

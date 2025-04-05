@@ -11,3 +11,6 @@ v1.1.0
 v1.2.0
 - Corrige bug en actualizacion de precios
 - Permite mantener los descuentos
+
+v1.3.0
+- Añade listado de productos no encontrados en el listado

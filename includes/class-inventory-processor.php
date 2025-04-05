@@ -72,6 +72,7 @@ class Inventory_Updater_Processor {
             'errors' => 0,
             'not_found_products' => array(),
             'updated_products' => array(),
+            'missing_in_file' => array(),  // Productos en la BD no encontrados en el archivo
             'processed_lines' => 0,
             'total_lines' => 0
         );
@@ -101,6 +102,10 @@ class Inventory_Updater_Processor {
         $products_by_barcode = $product_map['by_barcode'];
         $products_without_sku = $product_map['without_sku'];
         
+        // Crear registro de los SKUs y códigos de barras encontrados en el archivo
+        $skus_in_file = array();
+        $barcodes_in_file = array();
+        
         // Procesar archivo línea por línea
         while (($line = fgets($handle)) !== false) {
             $results['processed_lines']++;
@@ -123,6 +128,14 @@ class Inventory_Updater_Processor {
             $sku = trim($data[0]);
             $stock = intval($data[2]);
             $barcode = !empty($data[7]) ? trim($data[7]) : '';
+            
+            // Registrar SKU y código de barras para después detectar productos no listados
+            if (!empty($sku)) {
+                $skus_in_file[] = $sku;
+            }
+            if (!empty($barcode)) {
+                $barcodes_in_file[] = $barcode;
+            }
             
             // Extraer precio (en la posición 3 según el ejemplo proporcionado)
             // Asegurarnos de que el precio es un número válido y convertir comas a puntos
@@ -178,6 +191,22 @@ class Inventory_Updater_Processor {
         
         // Cerrar archivo
         fclose($handle);
+        
+        // Identificar productos existentes en la BD que no estaban en el archivo
+        foreach ($products_by_sku as $sku => $product) {
+            if (!in_array($sku, $skus_in_file)) {
+                // Verificar si el producto tampoco está en la lista por código de barras
+                $barcode = get_post_meta($product->ID, '_barcode', true);
+                if (empty($barcode) || !in_array($barcode, $barcodes_in_file)) {
+                    $results['missing_in_file'][] = array(
+                        'id' => $product->ID,
+                        'sku' => $sku,
+                        'barcode' => $barcode,
+                        'title' => $product->post_title
+                    );
+                }
+            }
+        }
         
         // Añadir productos sin SKU a los resultados
         $results['products_without_sku'] = $products_without_sku;

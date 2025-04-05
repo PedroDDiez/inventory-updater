@@ -283,6 +283,13 @@ jQuery(document).ready(function($) {
         html += '<p>no se pudieron asociar a productos existentes</p>';
         html += '</div>';
         
+        // Productos no listados en archivo
+        html += '<div class="inventory-updater-results-card missing-in-file">';
+        html += '<h3>Productos no listados</h3>';
+        html += '<div class="number">' + (results.missing_in_file ? results.missing_in_file.length : 0) + '</div>';
+        html += '<p>productos existentes no encontrados en el archivo</p>';
+        html += '</div>';
+        
         // Errores
         html += '<div class="inventory-updater-results-card errors">';
         html += '<h3>Errores</h3>';
@@ -302,47 +309,6 @@ jQuery(document).ready(function($) {
         // Sección de tablas
         html += '<div class="inventory-updater-results-tables">';
         
-        // Tabla de productos no encontrados
-        if (results.not_found_products.length > 0) {
-            html += '<h3>Productos no encontrados en la tienda</h3>';
-            html += '<p>Los siguientes productos del archivo de inventario no se pudieron encontrar en tu tienda WooCommerce:</p>';
-            html += '<div class="table-responsive">';
-            html += '<table class="inventory-updater-table not-found-table">';
-            html += '<thead><tr><th>SKU</th><th>Código de Barras</th><th>Título</th>';
-            
-            if (results.update_price) {
-                html += '<th>Precio</th>';
-            }
-            
-            html += '</tr></thead>';
-            html += '<tbody>';
-            
-            // Limitar a los primeros 100 para no sobrecargar el navegador
-            const maxToShow = Math.min(results.not_found_products.length, 100);
-            
-            for (let i = 0; i < maxToShow; i++) {
-                const product = results.not_found_products[i];
-                html += '<tr>';
-                html += '<td>' + (product.sku || '-') + '</td>';
-                html += '<td>' + (product.barcode || '-') + '</td>';
-                html += '<td>' + (product.title || '-') + '</td>';
-                
-                if (results.update_price) {
-                    html += '<td>' + (product.price || '-') + '</td>';
-                }
-                
-                html += '</tr>';
-            }
-            
-            if (results.not_found_products.length > maxToShow) {
-                const colspan = results.update_price ? 4 : 3;
-                html += '<tr><td colspan="' + colspan + '">... y ' + (results.not_found_products.length - maxToShow) + ' más</td></tr>';
-            }
-            
-            html += '</tbody></table>';
-            html += '</div>';
-        }
-        
         // Tabla de productos actualizados
         if (results.updated_products && results.updated_products.length > 0) {
             html += '<h3>Productos actualizados</h3>';
@@ -357,7 +323,7 @@ jQuery(document).ready(function($) {
             
             if (results.update_price) {
                 if (results.maintain_discounts) {
-                    html += '<th>Precio Regular Anterior</th><th>Precio Regular Nuevo</th><th>Precio Venta Anterior</th><th>Precio Venta Nuevo</th>';
+                    html += '<th>Precio Regular Anterior</th><th>Precio Regular Nuevo</th><th>Precio Oferta Anterior</th><th>Precio Oferta Nuevo</th>';
                 } else {
                     html += '<th>Precio Anterior</th><th>Precio Nuevo</th>';
                 }
@@ -416,6 +382,36 @@ jQuery(document).ready(function($) {
             html += '</div>';
         }
         
+        // Productos no listados en el archivo (nuevos)
+        if (results.missing_in_file && results.missing_in_file.length > 0) {
+            html += '<h3>Productos no encontrados en listado</h3>';
+            html += '<p>Los siguientes productos en tu tienda WooCommerce no aparecen en el archivo de inventario:</p>';
+            html += '<div class="table-responsive">';
+            html += '<table class="inventory-updater-table missing-in-file-table">';
+            html += '<thead><tr><th>ID</th><th>SKU</th><th>Código de Barras</th><th>Título</th></tr></thead>';
+            html += '<tbody>';
+            
+            // Limitar a los primeros 50 para no sobrecargar el navegador
+            const maxToShow = Math.min(results.missing_in_file.length, 50);
+            
+            for (let i = 0; i < maxToShow; i++) {
+                const product = results.missing_in_file[i];
+                html += '<tr>';
+                html += '<td>' + product.id + '</td>';
+                html += '<td>' + (product.sku || '-') + '</td>';
+                html += '<td>' + (product.barcode || '-') + '</td>';
+                html += '<td>' + product.title + '</td>';
+                html += '</tr>';
+            }
+            
+            if (results.missing_in_file.length > maxToShow) {
+                html += '<tr><td colspan="4">... y ' + (results.missing_in_file.length - maxToShow) + ' más</td></tr>';
+            }
+            
+            html += '</tbody></table>';
+            html += '</div>';
+        }
+        
         // Productos sin SKU
         if (results.products_without_sku.length > 0) {
             html += '<h3>Productos sin SKU en la tienda</h3>';
@@ -425,8 +421,8 @@ jQuery(document).ready(function($) {
             html += '<thead><tr><th>ID</th><th>Título</th></tr></thead>';
             html += '<tbody>';
             
-            // Limitar a los primeros 100 para no sobrecargar el navegador
-            const maxToShow = Math.min(results.products_without_sku.length, 100);
+            // Limitar a los primeros 30 para no sobrecargar el navegador
+            const maxToShow = Math.min(results.products_without_sku.length, 30);
             
             for (let i = 0; i < maxToShow; i++) {
                 const product = results.products_without_sku[i];
@@ -438,6 +434,47 @@ jQuery(document).ready(function($) {
             
             if (results.products_without_sku.length > maxToShow) {
                 html += '<tr><td colspan="2">... y ' + (results.products_without_sku.length - maxToShow) + ' más</td></tr>';
+            }
+            
+            html += '</tbody></table>';
+            html += '</div>';
+        }
+        
+        // Tabla de productos no encontrados (limitado a 10 y al final)
+        if (results.not_found_products.length > 0) {
+            html += '<h3>Productos no encontrados en la tienda</h3>';
+            html += '<p>Los siguientes productos del archivo de inventario no se pudieron encontrar en tu tienda WooCommerce:</p>';
+            html += '<div class="table-responsive">';
+            html += '<table class="inventory-updater-table not-found-table">';
+            html += '<thead><tr><th>SKU</th><th>Código de Barras</th><th>Título</th>';
+            
+            if (results.update_price) {
+                html += '<th>Precio</th>';
+            }
+            
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            // Limitar a los primeros 10 para no sobrecargar el navegador
+            const maxToShow = Math.min(results.not_found_products.length, 10);
+            
+            for (let i = 0; i < maxToShow; i++) {
+                const product = results.not_found_products[i];
+                html += '<tr>';
+                html += '<td>' + (product.sku || '-') + '</td>';
+                html += '<td>' + (product.barcode || '-') + '</td>';
+                html += '<td>' + (product.title || '-') + '</td>';
+                
+                if (results.update_price) {
+                    html += '<td>' + (product.price && product.price !== '0' ? product.price + ' €' : '-') + '</td>';
+                }
+                
+                html += '</tr>';
+            }
+            
+            if (results.not_found_products.length > maxToShow) {
+                const colspan = results.update_price ? 4 : 3;
+                html += '<tr><td colspan="' + colspan + '">... y ' + (results.not_found_products.length - maxToShow) + ' más</td></tr>';
             }
             
             html += '</tbody></table>';
