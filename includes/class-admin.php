@@ -119,6 +119,8 @@ class Inventory_Updater_Admin {
             'inventory_updater_params',
             array(
                 'ajax_url' => admin_url('admin-ajax.php'),
+                'admin_url' => admin_url(),
+                'site_url' => site_url(),
                 'nonce' => wp_create_nonce('inventory_updater_nonce'),
                 'processing_text' => __('Procesando...', 'inventory-updater'),
                 'success_text' => __('Proceso completado correctamente', 'inventory-updater'),

@@ -155,6 +155,25 @@ InventoryUpdater.ResultsRenderer = (function($) {
     }
     
     /**
+     * Create a clickable ID link for product editing
+     * @param {number} id - Product ID
+     * @returns {string} HTML anchor tag
+     */
+    function createEditLink(id) {
+        return '<a href="' + inventory_updater_params.admin_url + 'post.php?post=' + id + '&action=edit" target="_blank">' + id + '</a>';
+    }
+    
+    /**
+     * Create a clickable title link to view product on frontend
+     * @param {number} id - Product ID
+     * @param {string} title - Product title
+     * @returns {string} HTML anchor tag
+     */
+    function createViewLink(id, title) {
+        return '<a href="' + inventory_updater_params.site_url + '?p=' + id + '" target="_blank">' + title + '</a>';
+    }
+    
+    /**
      * Render updated products table
      * @param {Object} results - Results from processing
      * @returns {string} HTML content
@@ -189,9 +208,9 @@ InventoryUpdater.ResultsRenderer = (function($) {
         for (var i = 0; i < maxUpdatedToShow; i++) {
             var product = results.updated_products[i];
             html += '<tr>';
-            html += '<td>' + product.id + '</td>';
+            html += '<td>' + createEditLink(product.id) + '</td>';
             html += '<td>' + (product.sku || '-') + '</td>';
-            html += '<td>' + product.title + '</td>';
+            html += '<td>' + createViewLink(product.id, product.title) + '</td>';
             
             if (results.update_stock) {
                 var stockChanged = product.stock_changed === true;
@@ -276,9 +295,9 @@ InventoryUpdater.ResultsRenderer = (function($) {
         for (var i = 0; i < maxUnchangedToShow; i++) {
             var product = results.unchanged_products[i];
             html += '<tr>';
-            html += '<td>' + product.id + '</td>';
+            html += '<td>' + createEditLink(product.id) + '</td>';
             html += '<td>' + (product.sku || '-') + '</td>';
-            html += '<td>' + product.title + '</td>';
+            html += '<td>' + createViewLink(product.id, product.title) + '</td>';
             
             if (results.update_stock) {
                 html += '<td>' + product.new_stock + '</td>';
@@ -339,10 +358,10 @@ InventoryUpdater.ResultsRenderer = (function($) {
         for (var i = 0; i < maxToShow; i++) {
             var product = results.missing_in_file[i];
             html += '<tr>';
-            html += '<td>' + product.id + '</td>';
+            html += '<td>' + createEditLink(product.id) + '</td>';
             html += '<td>' + (product.sku || '-') + '</td>';
             html += '<td>' + (product.barcode || '-') + '</td>';
-            html += '<td>' + product.title + '</td>';
+            html += '<td>' + createViewLink(product.id, product.title) + '</td>';
             html += '</tr>';
         }
         
@@ -377,8 +396,8 @@ InventoryUpdater.ResultsRenderer = (function($) {
         for (var i = 0; i < maxToShow; i++) {
             var product = results.products_without_sku[i];
             html += '<tr>';
-            html += '<td>' + product.id + '</td>';
-            html += '<td>' + product.title + '</td>';
+            html += '<td>' + createEditLink(product.id) + '</td>';
+            html += '<td>' + createViewLink(product.id, product.title) + '</td>';
             html += '</tr>';
         }
         

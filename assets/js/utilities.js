@@ -61,13 +61,36 @@ InventoryUpdater.Utilities = (function($) {
         }
         return '<tr><td colspan="' + colspan + '">... y ' + (total - shown) + ' más</td></tr>';
     }
-    
-    // Public API
+
+    /**
+     * Format seconds into a readable time string
+     * @param {number} totalSeconds - Number of seconds
+     * @returns {string} Formatted time string (e.g., "2 min 30 seg")
+     */
+    function formatTimeFromSeconds(totalSeconds) {
+        if (totalSeconds < 0) return '';
+        
+        var minutes = Math.floor(totalSeconds / 60);
+        var seconds = Math.floor(totalSeconds % 60);
+        
+        var timeString = '';
+        
+        if (minutes > 0) {
+            timeString += minutes + ' min ';
+        }
+        
+        timeString += seconds + ' seg';
+        
+        return timeString;
+    }
+
+    // Añadir a la API pública en el return
     return {
         formatCurrency: formatCurrency,
         formatStockStatus: formatStockStatus,
         calculateTableColumns: calculateTableColumns,
-        formatShowMoreRow: formatShowMoreRow
+        formatShowMoreRow: formatShowMoreRow,
+        formatTimeFromSeconds: formatTimeFromSeconds
     };
     
 })(jQuery);

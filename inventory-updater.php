@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Definir constantes
-define('INVENTORY_UPDATER_VERSION', '1.2.0');
+define('INVENTORY_UPDATER_VERSION', '1.6.0');
 define('INVENTORY_UPDATER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('INVENTORY_UPDATER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('INVENTORY_UPDATER_UPLOADS_DIR', wp_upload_dir()['basedir'] . '/inventory-updater/');

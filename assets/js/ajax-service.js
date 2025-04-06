@@ -10,6 +10,10 @@ InventoryUpdater.Ajax = (function($) {
     // Reference to DOM elements
     var elements = {};
     
+    // Progress tracking variables
+    var progressInterval = null;
+    var progressStartTime = 0;
+    
     /**
      * Initialize AJAX services
      * @param {Object} elementsRef - Reference to DOM elements
@@ -145,6 +149,9 @@ InventoryUpdater.Ajax = (function($) {
         elements.progressBar.css('width', '0%');
         elements.progressText.text(inventory_updater_params.processing_text);
         
+        // Asegurarnos de quitar la clase de proceso completo al iniciar
+        elements.progressSection.removeClass('inventory-updater-process-complete');
+        
         // Hide previous results section
         elements.resultsSection.hide();
         elements.resultsContent.empty();
@@ -152,6 +159,12 @@ InventoryUpdater.Ajax = (function($) {
         // Verify we have parameters
         console.log('AJAX URL:', inventory_updater_params.ajax_url);
         console.log('Nonce:', inventory_updater_params.nonce);
+        
+        // Record start time for progress tracking
+        progressStartTime = new Date().getTime();
+        
+        // Start polling for progress updates
+        startProgressPolling();
         
         // Make AJAX request
         $.ajax({
@@ -166,6 +179,9 @@ InventoryUpdater.Ajax = (function($) {
                 
                 // Update progress to 100%
                 elements.progressBar.css('width', '100%');
+                
+                // Aplicar clase de proceso completo
+                elements.progressSection.addClass('inventory-updater-process-complete');
                 
                 if (response.success) {
                     // Show success message
@@ -201,8 +217,105 @@ InventoryUpdater.Ajax = (function($) {
                 // Enable button
                 elements.processButton.attr('disabled', false).text('Iniciar actualización');
                 console.log('AJAX request completed');
+                
+                // Stop progress polling
+                stopProgressPolling();
             }
         });
+    }
+    
+    /**
+     * Start polling for progress updates
+     */
+    function startProgressPolling() {
+        // Clear any existing interval
+        stopProgressPolling();
+        
+        // Set polling interval (every 2 seconds)
+        progressInterval = setInterval(function() {
+            getProgressUpdate();
+        }, 2000);
+    }
+    
+    /**
+     * Stop polling for progress updates
+     */
+    function stopProgressPolling() {
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+    }
+    
+    /**
+     * Get progress update via AJAX
+     */
+    function getProgressUpdate() {
+        $.ajax({
+            url: inventory_updater_params.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'inventory_updater_progress',
+                nonce: inventory_updater_params.nonce
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    updateProgressUI(response.data);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Progress update error:', error);
+            }
+        });
+    }
+    
+    /**
+     * Update progress UI with latest data
+     * @param {Object} data - Progress data from server
+     */
+    function updateProgressUI(data) {
+        // Calculate elapsed time
+        var elapsedSeconds = Math.floor((new Date().getTime() - progressStartTime) / 1000);
+        
+        // Update progress bar
+        elements.progressBar.css('width', data.percentage + '%');
+        
+        // Format time strings
+        var elapsedTimeStr = InventoryUpdater.Utilities.formatTimeFromSeconds(elapsedSeconds);
+        var estimatedTimeStr = InventoryUpdater.Utilities.formatTimeFromSeconds(data.estimated_seconds);
+        
+        // Create progress HTML
+        var progressHtml = '<div class="inventory-updater-progress-detail">';
+        progressHtml += 'Procesando... <strong>' + data.percentage + '%</strong> completado';
+        progressHtml += ' (' + data.processed_lines + ' de ' + data.total_lines + ' líneas)';
+        progressHtml += '</div>';
+        
+        // Add stats if available
+        if (data.stats) {
+            progressHtml += '<div class="inventory-updater-progress-stats">';
+            progressHtml += '<span class="inventory-updater-progress-stat updated">Actualizados: ' + data.stats.updated + '</span>';
+            progressHtml += '<span class="inventory-updater-progress-stat unchanged">Sin cambios: ' + data.stats.no_changes + '</span>';
+            progressHtml += '<span class="inventory-updater-progress-stat not-found">No encontrados: ' + data.stats.not_found + '</span>';
+            progressHtml += '</div>';
+        }
+        
+        // Add time information
+        progressHtml += '<div class="inventory-updater-progress-time">';
+        progressHtml += 'Tiempo transcurrido: ' + elapsedTimeStr;
+        
+        if (estimatedTimeStr && data.percentage < 100) {
+            progressHtml += ' - Tiempo restante estimado: ' + estimatedTimeStr;
+        }
+        
+        progressHtml += '</div>';
+        
+        // Update UI
+        elements.progressText.html(progressHtml);
+        
+        // Add complete class when done
+        if (data.percentage >= 100) {
+            elements.progressSection.addClass('inventory-updater-process-complete');
+        }
     }
     
     return {

@@ -26,6 +26,7 @@ class Inventory_Updater_Processor {
      */
     public function init() {
         add_action('wp_ajax_inventory_updater_process', array($this, 'ajax_process_inventory_file'));
+        add_action('wp_ajax_inventory_updater_progress', array($this, 'ajax_get_progress'));
     }
     
     /**
@@ -48,11 +49,117 @@ class Inventory_Updater_Processor {
             wp_send_json_error(array('message' => __('No se ha encontrado el archivo articulos.txt.', 'inventory-updater')));
         }
         
+        // Inicializar datos de progreso
+        $this->initialize_progress_data();
+        
         // Iniciar procesamiento
         $results = $this->process_inventory_file($inventory_file);
         
+        // Finalizar y eliminar datos de progreso
+        $this->finalize_progress_data();
+        
         // Responder con los resultados
         wp_send_json_success($results);
+    }
+    
+    /**
+     * Obtener progreso actual (AJAX)
+     */
+    public function ajax_get_progress() {
+        // Verificar nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'inventory_updater_nonce')) {
+            wp_send_json_error(array('message' => 'Invalid security token'));
+        }
+        
+        // Obtener datos de progreso
+        $progress_data = get_transient('inventory_updater_progress');
+        
+        if (!$progress_data) {
+            wp_send_json_error(array('message' => 'No progress data available'));
+        }
+        
+        // Calcular tiempo estimado de finalización
+        $estimated_time = 0;
+        if ($progress_data['percentage'] > 0 && $progress_data['percentage'] < 100) {
+            $elapsed_time = time() - $progress_data['start_time'];
+            $estimated_time = ($elapsed_time / $progress_data['percentage']) * (100 - $progress_data['percentage']);
+        }
+        
+        $progress_data['estimated_seconds'] = round($estimated_time);
+        
+        wp_send_json_success($progress_data);
+    }
+    
+    /**
+     * Inicializar datos de progreso
+     */
+    private function initialize_progress_data() {
+        $progress_data = array(
+            'processed_lines' => 0,
+            'total_lines' => 0,
+            'percentage' => 0,
+            'start_time' => time(),
+            'last_update' => time(),
+            'stats' => array(
+                'updated' => 0,
+                'no_changes' => 0,
+                'not_found' => 0
+            )
+        );
+        
+        set_transient('inventory_updater_progress', $progress_data, 3600); // 1 hora de expiración
+    }
+    
+    /**
+     * Actualizar datos de progreso
+     */
+    private function update_progress_data($data) {
+        $progress_data = get_transient('inventory_updater_progress');
+        
+        if (!$progress_data) {
+            return;
+        }
+        
+        // Actualizar datos
+        foreach ($data as $key => $value) {
+            if (isset($progress_data[$key])) {
+                if ($key === 'stats' && is_array($value)) {
+                    foreach ($value as $stat_key => $stat_value) {
+                        if (isset($progress_data['stats'][$stat_key])) {
+                            $progress_data['stats'][$stat_key] = $stat_value;
+                        }
+                    }
+                } else {
+                    $progress_data[$key] = $value;
+                }
+            }
+        }
+        
+        // Actualizar timestamp
+        $progress_data['last_update'] = time();
+        
+        // Calcular porcentaje
+        if ($progress_data['total_lines'] > 0) {
+            $progress_data['percentage'] = round(($progress_data['processed_lines'] / $progress_data['total_lines']) * 100);
+        }
+        
+        set_transient('inventory_updater_progress', $progress_data, 3600);
+    }
+    
+    /**
+     * Finalizar y eliminar datos de progreso
+     */
+    private function finalize_progress_data() {
+        // Establecer progreso completo
+        $progress_data = get_transient('inventory_updater_progress');
+        
+        if ($progress_data) {
+            $progress_data['percentage'] = 100;
+            $progress_data['processed_lines'] = $progress_data['total_lines'];
+            $progress_data['last_update'] = time();
+            
+            set_transient('inventory_updater_progress', $progress_data, 60); // Mantener solo por 1 minuto más
+        }
     }
     
     /**
@@ -95,6 +202,11 @@ class Inventory_Updater_Processor {
         }
         $results['total_lines'] = $total_lines;
         
+        // Actualizar datos de progreso con total de líneas
+        $this->update_progress_data(array(
+            'total_lines' => $total_lines
+        ));
+        
         // Reiniciar puntero del archivo
         rewind($handle);
         
@@ -108,9 +220,28 @@ class Inventory_Updater_Processor {
         $skus_in_file = array();
         $barcodes_in_file = array();
         
+        // Variables para control de actualización de progreso
+        $batch_size = 50; // Actualizar progreso cada 50 líneas
+        $next_update = $batch_size;
+        $last_progress_update = time();
+        
         // Procesar archivo línea por línea
         while (($line = fgets($handle)) !== false) {
             $results['processed_lines']++;
+            
+            // Actualizar progreso periódicamente
+            if ($results['processed_lines'] >= $next_update || (time() - $last_progress_update) >= 3) {
+                $this->update_progress_data(array(
+                    'processed_lines' => $results['processed_lines'],
+                    'stats' => array(
+                        'updated' => $results['updated'],
+                        'no_changes' => $results['matched_no_changes'],
+                        'not_found' => $results['not_found']
+                    )
+                ));
+                $next_update = $results['processed_lines'] + $batch_size;
+                $last_progress_update = time();
+            }
             
             // Saltar líneas vacías
             if (trim($line) == '') {
@@ -153,9 +284,6 @@ class Inventory_Updater_Processor {
                 $price = floatval($price_str);
             }
             
-            // Registrar los datos para depuración
-            error_log("Procesando línea - SKU: $sku, Stock: $stock, Precio original: {$data[3]}, Precio convertido: $price");
-            
             // Buscar producto por SKU o código de barras
             $product_id = null;
             
@@ -167,9 +295,6 @@ class Inventory_Updater_Processor {
             
             // Si encontramos el producto, actualizar el stock y/o precio
             if ($product_id) {
-                // Debug para verificar los datos antes de actualizar
-                error_log("Actualizando producto ID: $product_id, SKU: $sku, Stock: $stock, Precio: $price");
-                
                 $update_result = $this->plugin->product_updater->update_product($product_id, $stock, $price, $sku, $barcode);
                 
                 if ($update_result['updated']) {
@@ -181,9 +306,6 @@ class Inventory_Updater_Processor {
                         $results['unchanged_products'][] = $update_result['data'];
                         $results['matched_no_changes']++;
                     }
-                    
-                    // Debug para verificar los datos después de actualizar
-                    error_log("Producto procesado. Datos: " . print_r($update_result['data'], true) . ", Cambios: " . ($update_result['has_changes'] ? 'Sí' : 'No'));
                 }
             } else {
                 // Si no encontramos el producto, añadir a la lista de no encontrados
